@@ -1,0 +1,60 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diamond.Procurement.App", "src\Diamond.Procurement.App\Diamond.Procurement.App.csproj", "{CBFF55BB-21E0-483F-B369-F74EAF5D81EB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diamond.Procurement.Domain", "src\Diamond.Procurement.Domain\Diamond.Procurement.Domain.csproj", "{5E8A1C1F-F5B7-4D7F-BB92-547B87E20A65}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diamond.Procurement.Data", "src\Diamond.Procurement.Data\Diamond.Procurement.Data.csproj", "{978836E6-B7B5-41BD-8D38-2A3BE45C5421}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diamond.Procurement.Win", "Diamond.Procurement.Win\Diamond.Procurement.Win.csproj", "{859AB723-537E-4D1D-94F9-365617ED8FD4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CBFF55BB-21E0-483F-B369-F74EAF5D81EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBFF55BB-21E0-483F-B369-F74EAF5D81EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBFF55BB-21E0-483F-B369-F74EAF5D81EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBFF55BB-21E0-483F-B369-F74EAF5D81EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E8A1C1F-F5B7-4D7F-BB92-547B87E20A65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E8A1C1F-F5B7-4D7F-BB92-547B87E20A65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E8A1C1F-F5B7-4D7F-BB92-547B87E20A65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E8A1C1F-F5B7-4D7F-BB92-547B87E20A65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{978836E6-B7B5-41BD-8D38-2A3BE45C5421}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{978836E6-B7B5-41BD-8D38-2A3BE45C5421}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{978836E6-B7B5-41BD-8D38-2A3BE45C5421}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{978836E6-B7B5-41BD-8D38-2A3BE45C5421}.Release|Any CPU.Build.0 = Release|Any CPU
+		{859AB723-537E-4D1D-94F9-365617ED8FD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{859AB723-537E-4D1D-94F9-365617ED8FD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{859AB723-537E-4D1D-94F9-365617ED8FD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{859AB723-537E-4D1D-94F9-365617ED8FD4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ED38D41A-F3C1-4C61-869E-2B85DF07D502}
+	EndGlobalSection
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 5
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://srothman.visualstudio.com/
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = Diamond.Procurement.Win\\Diamond.Procurement.Win.csproj
+		SccProjectName1 = Diamond.Procurement.Win
+		SccLocalPath1 = Diamond.Procurement.Win
+		SccProjectUniqueName2 = src\\Diamond.Procurement.App\\Diamond.Procurement.App.csproj
+		SccProjectName2 = src/Diamond.Procurement.App
+		SccLocalPath2 = src\\Diamond.Procurement.App
+		SccProjectUniqueName3 = src\\Diamond.Procurement.Data\\Diamond.Procurement.Data.csproj
+		SccProjectName3 = src/Diamond.Procurement.Data
+		SccLocalPath3 = src\\Diamond.Procurement.Data
+		SccProjectUniqueName4 = src\\Diamond.Procurement.Domain\\Diamond.Procurement.Domain.csproj
+		SccProjectName4 = src/Diamond.Procurement.Domain
+		SccLocalPath4 = src\\Diamond.Procurement.Domain
+	EndGlobalSection
+EndGlobal
