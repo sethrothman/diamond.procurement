@@ -1,8 +1,10 @@
-﻿using Dapper;
+﻿using System;
+using System.Data;
+using System.Linq;
+using Dapper;
 using Diamond.Procurement.Data.Contracts;
 using Diamond.Procurement.Domain.Models;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Data;
 
 namespace Diamond.Procurement.Data;
 
@@ -18,6 +20,23 @@ public interface IMasterListRepository
 
 public sealed class MasterListRepository : IMasterListRepository
 {
+    private static readonly DataTableBuilder<MasterListRow> MasterListTvpBuilder =
+        new DataTableBuilder<MasterListRow>()
+            .AddColumn("MasterListId", r => r.MasterListId.HasValue && r.MasterListId.Value > 0 ? r.MasterListId : null)
+            .AddColumn("Name", r => (r.Name ?? string.Empty).Trim())
+            .AddColumn("ListTypeId", r => r.ListTypeId)
+            .AddColumn("BuyerId", r => r.BuyerId)
+            .AddColumn("VendorId", r => r.VendorId);
+
+    private static readonly DataTableBuilder<string> UpcListTvpBuilder =
+        new DataTableBuilder<string>()
+            .AddColumn("Upc", s => s);
+
+    private static readonly DataTableBuilder<AlternateBuyerRow> AlternateBuyerTvpBuilder =
+        new DataTableBuilder<AlternateBuyerRow>()
+            .AddColumn("MasterListDetailId", r => r.MasterListDetailId)
+            .AddColumn("HasAlternateBuyer", r => r.HasAlternateBuyer);
+
     private readonly IDbFactory _dbf;
     public MasterListRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -58,35 +77,8 @@ public sealed class MasterListRepository : IMasterListRepository
                 cancellationToken: ct));
     }
 
-    private static DataTable BuildTvp(IEnumerable<MasterListRow> rows)
-    {
-        var dt = new DataTable();
-        dt.Columns.Add("MasterListId", typeof(int));      // allow DBNull for inserts
-        dt.Columns.Add("Name", typeof(string));
-        dt.Columns.Add("ListTypeId", typeof(int));
-        dt.Columns.Add("BuyerId", typeof(int));
-        dt.Columns.Add("VendorId", typeof(int));
-
-        foreach (var r in rows)
-        {
-            var dr = dt.NewRow();
-
-            // MasterListId: NULL or 0 => treat as insert
-            if (r.MasterListId.HasValue && r.MasterListId.Value > 0)
-                dr["MasterListId"] = r.MasterListId.Value;
-            else
-                dr["MasterListId"] = DBNull.Value;
-
-            dr["Name"] = (r.Name ?? string.Empty).Trim();   // normalize
-            dr["ListTypeId"] = r.ListTypeId;
-            dr["BuyerId"] = r.BuyerId;
-            dr["VendorId"] = r.VendorId;
-
-            dt.Rows.Add(dr);
-        }
-
-        return dt;
-    }
+    private static DataTable BuildTvp(IEnumerable<MasterListRow> rows) =>
+        MasterListTvpBuilder.Build(rows ?? Array.Empty<MasterListRow>());
 
     public async Task<IReadOnlyList<MasterListSummary>> GetAllMasterLists(CancellationToken ct)
     {
@@ -142,27 +134,18 @@ public sealed class MasterListRepository : IMasterListRepository
 
     private static DataTable UpcListTvp(IEnumerable<string> upcs)
     {
-        var dt = new DataTable();
-        dt.Columns.Add("Upc", typeof(string));
-        foreach (var raw in upcs ?? Array.Empty<string>())
-        {
-            var s = (raw ?? "").Trim();
-            if (!string.IsNullOrEmpty(s))
-                dt.Rows.Add(s);
-        }
-        return dt;
+        var normalized = (upcs ?? Array.Empty<string>())
+            .Select(s => (s ?? string.Empty).Trim())
+            .Where(s => !string.IsNullOrEmpty(s));
+
+        return UpcListTvpBuilder.Build(normalized);
     }
 
     public async Task MarkAsAlternateBuyerPerRowAsync(IEnumerable<AlternateBuyerRow> rows, CancellationToken ct)
     {
         using var db = _dbf.Create();
 
-        var tvp = new DataTable();
-        tvp.Columns.Add("MasterListDetailId", typeof(int));
-        tvp.Columns.Add("HasAlternateBuyer", typeof(bool)); // per-row value is used
-
-        foreach (var r in rows)
-            tvp.Rows.Add(r.MasterListDetailId, r.HasAlternateBuyer);
+        using var tvp = AlternateBuyerTvpBuilder.Build(rows ?? Array.Empty<AlternateBuyerRow>());
 
         var p = new DynamicParameters();
         p.Add("@Rows", tvp.AsTableValuedParameter("dbo.MasterListDetailAlternateBuyerType"));

@@ -6,6 +6,16 @@ namespace Diamond.Procurement.Data;
 
 public sealed class VendorForecastRepository
 {
+    private static readonly DataTableBuilder<VendorForecastRow> VendorForecastTvpBuilder =
+        new DataTableBuilder<VendorForecastRow>()
+            .AddColumn("Upc", r => r.Upc)
+            .AddColumn("Description", r => (r.Description ?? string.Empty).Trim())
+            .AddColumn("CasePack", r => r.CasePack)
+            .AddColumn("VendorId", r => r.VendorId)
+            .AddColumn("Price", r => r.Price)
+            .AddColumn("QtyInCases", r => r.QtyInCases)
+            .AddColumn("EffectiveDate", r => r.EffectiveDate.ToDateTime(TimeOnly.MinValue));
+
     private readonly IDbFactory _dbf;
     public VendorForecastRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -18,29 +28,6 @@ public sealed class VendorForecastRepository
         await db.ExecuteAsync(new CommandDefinition("dbo.VendorForecast_Load", p, commandType: CommandType.StoredProcedure, cancellationToken: ct));
     }
 
-    private static DataTable BuildTvp(IEnumerable<VendorForecastRow> rows)
-    {
-        var dt = new DataTable();
-        dt.Columns.Add("Upc", typeof(string));
-        dt.Columns.Add("Description", typeof(string));
-        dt.Columns.Add("CasePack", typeof(int));
-        dt.Columns.Add("VendorId", typeof(int));
-        dt.Columns.Add("Price", typeof(decimal));
-        dt.Columns.Add("QtyInCases", typeof(int));
-        dt.Columns.Add("EffectiveDate", typeof(DateTime));
-
-        foreach (var r in rows)
-        {
-            var dr = dt.NewRow();
-            dr["Upc"] = r.Upc;
-            dr["Description"] = (r.Description ?? string.Empty).Trim();
-            dr["CasePack"] = r.CasePack;
-            dr["VendorId"] = r.VendorId;
-            dr["Price"] = r.Price;
-            dr["QtyInCases"] = r.QtyInCases;
-            dr["EffectiveDate"] = r.EffectiveDate.ToDateTime(TimeOnly.MinValue);
-            dt.Rows.Add(dr);
-        }
-        return dt;
-    }
+    private static DataTable BuildTvp(IEnumerable<VendorForecastRow> rows) =>
+        VendorForecastTvpBuilder.Build(rows);
 }

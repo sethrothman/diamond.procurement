@@ -38,13 +38,13 @@ namespace Diamond.Procurement.App.Processing
             await csv.ReadAsync();
             csv.ReadHeader();
 
-            var headers = csv.HeaderRecord?.ToArray() ?? Array.Empty<string>();
+            var headers = CsvHeaderLookup.Normalize(csv.HeaderRecord);
 
             // Required columns (note: “ CMPT~VICAL” can have a leading space)
-            int idxUpc = IndexOfHeader(headers, "UPC");
-            int idxVical = IndexOfHeader(headers, "CMPT~Vic", allowLeadingSpace: true);
+            int idxUpc = CsvHeaderLookup.IndexOf(headers, "UPC");
+            int idxVical = CsvHeaderLookup.IndexOf(headers, "CMPT~Vic", allowLeadingSpace: true);
             int idxVicalQty = idxVical + 1; // “CMPT~QTY” immediately to the right
-            int idxQkall = IndexOfHeader(headers, "CMPT~Qk");
+            int idxQkall = CsvHeaderLookup.IndexOf(headers, "CMPT~Qk");
             int idxQkallQty = idxQkall + 1; // “CMPT~QTY” immediately to the right
 
             while (await csv.ReadAsync())
@@ -53,10 +53,10 @@ namespace Diamond.Procurement.App.Processing
                 if (!UpcNormalizer.TryNormalizeTo10(rawUpc, out var upc, out _))
                     continue;
 
-                decimal? priceVI = ParseMoney(csv.GetField(idxVical));
-                int? qtyVI = ParseInt(csv.GetField(idxVicalQty));
-                decimal? priceQK = ParseMoney(csv.GetField(idxQkall));
-                int? qtyQK = ParseInt(csv.GetField(idxQkallQty));
+                decimal? priceVI = NumericParsers.ParseMoney(csv.GetField(idxVical));
+                int? qtyVI = NumericParsers.ParseOptionalSignedInt(csv.GetField(idxVicalQty));
+                decimal? priceQK = NumericParsers.ParseMoney(csv.GetField(idxQkall));
+                int? qtyQK = NumericParsers.ParseOptionalSignedInt(csv.GetField(idxQkallQty));
 
                 // Skip rows that carry no useful signal
                 if (priceVI is null && qtyVI is null && priceQK is null && qtyQK is null)
@@ -73,49 +73,6 @@ namespace Diamond.Procurement.App.Processing
             }
 
             await _repo.LoadAsync(rows, ct);
-        }
-
-        private static int IndexOfHeader(string[] headers, string target, bool allowLeadingSpace = false)
-        {
-            for (int i = 0; i < headers.Length; i++)
-            {
-                var h = headers[i] ?? string.Empty;
-                var hs = allowLeadingSpace ? h.TrimStart() : h.Trim();
-                if (hs.Equals(target, StringComparison.OrdinalIgnoreCase))
-                    return i;
-            }
-            throw new InvalidOperationException($"Could not find column header '{target}'.");
-        }
-
-        private static int? ParseInt(string? raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-            var s = raw.Trim().Replace(",", "");
-            bool trailingMinus = s.EndsWith("-");
-            if (trailingMinus) s = s[..^1];
-            if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var val))
-                return trailingMinus ? -val : val;
-            return null;
-        }
-
-        private static decimal? ParseMoney(string? raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-            var s = raw.Trim();
-            bool trailingMinus = s.EndsWith("-");
-            if (trailingMinus) s = s[..^1];
-
-            if (s.StartsWith("(") && s.EndsWith(")"))
-            {
-                s = s[1..^1];
-                trailingMinus = true;
-            }
-            s = s.Replace("$", "").Replace(",", "");
-
-            if (decimal.TryParse(s, NumberStyles.Number | NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var d))
-                return trailingMinus ? -d : d;
-
-            return null;
         }
     }
 }

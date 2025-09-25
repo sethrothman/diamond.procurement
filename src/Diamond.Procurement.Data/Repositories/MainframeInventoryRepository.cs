@@ -6,6 +6,19 @@ namespace Diamond.Procurement.Data;
 
 public sealed class MainframeInventoryRepository
 {
+    private static readonly DataTableBuilder<MainframeInventoryRow> MainframeInventoryTvpBuilder =
+        new DataTableBuilder<MainframeInventoryRow>()
+            .AddColumn("Upc", r => r.Upc)
+            .AddColumn("Description", r => (r.Description ?? string.Empty).Trim())
+            .AddColumn("CasePack", r => r.CasePack)
+            .AddColumn("QtyAvailable", r => r.QtyAvailable)
+            .AddColumn("QtyOnPo", r => r.QtyOnPo)
+            .AddColumn("QtyOverstock", r => r.QtyOverstock)
+            .AddColumn("ListPrice", r => r.ListPrice)
+            .AddColumn("EffectiveDate", r => r.EffectiveDate.ToDateTime(TimeOnly.MinValue))
+            .AddColumn("HI", r => r.HI)
+            .AddColumn("TI", r => r.TI);
+
     private readonly IDbFactory _dbf;
     public MainframeInventoryRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -23,35 +36,6 @@ public sealed class MainframeInventoryRepository
             commandTimeout: 300));
     }
 
-    private static DataTable BuildTvp(IEnumerable<MainframeInventoryRow> rows)
-    {
-        var dt = new DataTable();
-        dt.Columns.Add("Upc", typeof(string));
-        dt.Columns.Add("Description", typeof(string));
-        dt.Columns.Add("CasePack", typeof(int));
-        dt.Columns.Add("QtyAvailable", typeof(int));
-        dt.Columns.Add("QtyOnPo", typeof(int));
-        dt.Columns.Add("QtyOverstock", typeof(int));
-        dt.Columns.Add("ListPrice", typeof(decimal));   // NEW: carry through to proc
-        dt.Columns.Add("EffectiveDate", typeof(DateTime));
-        dt.Columns.Add("HI", typeof(int));
-        dt.Columns.Add("TI", typeof(int));
-
-        foreach (var r in rows)
-        {
-            var row = dt.NewRow();
-            row["Upc"] = r.Upc;
-            row["Description"] = (r.Description ?? string.Empty).Trim();
-            row["CasePack"] = r.CasePack.HasValue ? r.CasePack.Value : DBNull.Value;
-            row["QtyAvailable"] = r.QtyAvailable;
-            row["QtyOnPo"] = r.QtyOnPo;
-            row["QtyOverstock"] = r.QtyOverstock;
-            row["ListPrice"] = r.ListPrice.HasValue ? r.ListPrice.Value : DBNull.Value; // NEW
-            row["EffectiveDate"] = r.EffectiveDate.ToDateTime(TimeOnly.MinValue);
-            row["HI"] = r.HI;
-            row["TI"] = r.TI;
-            dt.Rows.Add(row);
-        }
-        return dt;
-    }
+    private static DataTable BuildTvp(IEnumerable<MainframeInventoryRow> rows) =>
+        MainframeInventoryTvpBuilder.Build(rows);
 }
