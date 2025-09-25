@@ -38,6 +38,7 @@ public sealed class MainframeInventoryProcessor : IFileProcessor
         };
 
         using var csv = new CsvReader(sr, cfg);
+
         await csv.ReadAsync();
         csv.ReadHeader();
         var headers = CsvHeaderLookup.Normalize(csv.HeaderRecord);
