@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Diamond.Procurement.Win": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
