@@ -6,6 +6,19 @@ namespace Diamond.Procurement.Data;
 
 public sealed class BuyerInventoryRepository
 {
+    private static readonly DataTableBuilder<BuyerInventoryRow> BuyerInventoryTvpBuilder =
+        new DataTableBuilder<BuyerInventoryRow>()
+            .AddColumn("Upc", r => r.Upc)
+            .AddColumn("Description", r => (r.Description ?? string.Empty).Trim())
+            .AddColumn("CasePack", r => r.CasePack)
+            .AddColumn("BuyerId", r => r.BuyerId)
+            .AddColumn("OnHand", r => r.OnHand)
+            .AddColumn("OnPo", r => r.OnPo)
+            .AddColumn("SalesYTD", r => r.SalesYTD)
+            .AddColumn("UnitsSoldLastYear", r => r.UnitsSoldLastYear)
+            .AddColumn("EffectiveDate", r => r.EffectiveDate.ToDateTime(TimeOnly.MinValue))
+            .AddColumn("StrikePrice", r => r.StrikePrice);
+
     private readonly IDbFactory _dbf;
     public BuyerInventoryRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -18,37 +31,8 @@ public sealed class BuyerInventoryRepository
         await db.ExecuteAsync(new CommandDefinition("dbo.BuyerInventory_Load", p, commandType: CommandType.StoredProcedure, cancellationToken: ct));
     }
 
-    private static DataTable BuildTvp(IEnumerable<BuyerInventoryRow> rows)
-    {
-        var dt = new DataTable();
-        dt.Columns.Add("Upc", typeof(string));
-        dt.Columns.Add("Description", typeof(string));          
-        dt.Columns.Add("CasePack", typeof(int));
-        dt.Columns.Add("BuyerId", typeof(int));
-        dt.Columns.Add("OnHand", typeof(int));
-        dt.Columns.Add("OnPo", typeof(int));
-        dt.Columns.Add("SalesYTD", typeof(int));
-        dt.Columns.Add("UnitsSoldLastYear", typeof(int));
-        dt.Columns.Add("EffectiveDate", typeof(DateTime));
-        dt.Columns.Add("StrikePrice", typeof(decimal));  // money (nullable)
-
-        foreach (var r in rows)
-        {
-            var dr = dt.NewRow();
-            dr["Upc"] = r.Upc;
-            dr["CasePack"] = r.CasePack;
-            dr["Description"] = (r.Description ?? string.Empty).Trim();  
-            dr["BuyerId"] = r.BuyerId;
-            dr["OnHand"] = r.OnHand;
-            dr["OnPo"] = r.OnPo;
-            dr["SalesYTD"] = r.SalesYTD;
-            dr["UnitsSoldLastYear"] = r.UnitsSoldLastYear;
-            dr["EffectiveDate"] = r.EffectiveDate.ToDateTime(TimeOnly.MinValue);
-            dr["StrikePrice"] = r.StrikePrice is null ? (object)DBNull.Value : r.StrikePrice.Value;
-            dt.Rows.Add(dr);
-        }
-        return dt;
-    }
+    private static DataTable BuildTvp(IEnumerable<BuyerInventoryRow> rows) =>
+        BuyerInventoryTvpBuilder.Build(rows);
 
     public async Task<IReadOnlyList<BuyerSoldVendorNotInMasterRow>> ListBuyerSoldVendorNotInMasterAsync(CancellationToken ct = default)
     {

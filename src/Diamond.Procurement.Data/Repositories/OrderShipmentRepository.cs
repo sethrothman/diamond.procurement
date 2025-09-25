@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using Dapper;
 using Diamond.Procurement.Data.Models;
 
@@ -23,6 +24,11 @@ public interface IOrderVendorShipmentRepository
 
 public sealed class OrderVendorShipmentRepository : IOrderVendorShipmentRepository
 {
+    private static readonly DataTableBuilder<(int UpcId, int Quantity)> ShipmentDetailTvpBuilder =
+        new DataTableBuilder<(int UpcId, int Quantity)>()
+            .AddColumn("UpcId", d => d.UpcId)
+            .AddColumn("Quantity", d => d.Quantity);
+
     private readonly IDbFactory _dbf;
     public OrderVendorShipmentRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -83,11 +89,7 @@ public sealed class OrderVendorShipmentRepository : IOrderVendorShipmentReposito
     {
         using var db = _dbf.Create();
 
-        using var tvp = new DataTable();
-        tvp.Columns.Add("UpcId", typeof(int));
-        tvp.Columns.Add("Quantity", typeof(int));
-        foreach (var (upcId, qty) in details)
-            tvp.Rows.Add(upcId, qty);
+        using var tvp = ShipmentDetailTvpBuilder.Build(details ?? Array.Empty<(int UpcId, int Quantity)>());
 
         var p = new DynamicParameters();
         p.Add("@OrderVendorId", orderVendorId);
