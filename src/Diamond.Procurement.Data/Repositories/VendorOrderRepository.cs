@@ -1,7 +1,8 @@
-﻿using Dapper;
+﻿using System;
+using System.Data;
+using Dapper;
 using Diamond.Procurement.Data.Models;
 using Diamond.Procurement.Domain.Models;
-using System.Data;
 
 namespace Diamond.Procurement.Data;
 
@@ -22,6 +23,14 @@ public interface IOrderVendorRepository
 
 public sealed class OrderVendorRepository : IOrderVendorRepository
 {
+    private static readonly DataTableBuilder<OrderQtyEdit> OrderQtyEditTvpBuilder =
+        new DataTableBuilder<OrderQtyEdit>()
+            .AddColumn("UpcId", r => r.UpcId)
+            .AddColumn("QtyInCases", r => r.QtyInCases)
+            .AddColumn("ExtraCases", r => r.ExtraCases)
+            .AddColumn("QtyConfirmed", r => r.QtyConfirmed)
+            .AddColumn("WeeksToBuy", r => r.WeeksToBuy);
+
     private readonly IDbFactory _dbf;
     public OrderVendorRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -60,14 +69,7 @@ public sealed class OrderVendorRepository : IOrderVendorRepository
     public async Task<int> UpdateQuantitiesAsync(int orderVendorId, IEnumerable<OrderQtyEdit> rows, CancellationToken ct)
     {
         using var db = _dbf.Create();
-        var tvp = new DataTable();
-        tvp.Columns.Add("UpcId", typeof(int));
-        tvp.Columns.Add("QtyInCases", typeof(int));
-        tvp.Columns.Add("ExtraCases", typeof(int));
-        tvp.Columns.Add("QtyConfirmed", typeof(int));
-        tvp.Columns.Add("WeeksToBuy", typeof(int));
-
-        foreach (var r in rows) tvp.Rows.Add(r.UpcId, r.QtyInCases, r.ExtraCases, r.QtyConfirmed, r.WeeksToBuy);
+        var tvp = OrderQtyEditTvpBuilder.Build(rows ?? Array.Empty<OrderQtyEdit>());
 
         var p = new DynamicParameters();
         p.Add("@OrderVendorId", orderVendorId);

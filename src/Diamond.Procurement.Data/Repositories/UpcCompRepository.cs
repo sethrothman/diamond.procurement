@@ -6,6 +6,14 @@ namespace Diamond.Procurement.Data
 {
     public sealed class UpcCompRepository
     {
+        private static readonly DataTableBuilder<UpcCompRow> UpcCompTvpBuilder =
+            new DataTableBuilder<UpcCompRow>()
+                .AddColumn("Upc", r => r.Upc)
+                .AddColumn("PriceVictory", r => r.PriceVictory)
+                .AddColumn("QtyVictory", r => r.QtyVictory)
+                .AddColumn("PriceQualityKing", r => r.PriceQualityKing)
+                .AddColumn("QtyQualityKing", r => r.QtyQualityKing);
+
         private readonly IDbFactory _dbf;
         public UpcCompRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -25,27 +33,7 @@ namespace Diamond.Procurement.Data
             await db.ExecuteAsync(cmd);
         }
 
-        private static DataTable BuildTvp(IEnumerable<UpcCompRow> rows)
-        {
-            var dt = new DataTable();
-            dt.Columns.Add("Upc", typeof(string));
-            dt.Columns.Add("PriceVictory", typeof(decimal));
-            dt.Columns.Add("QtyVictory", typeof(int));
-            dt.Columns.Add("PriceQualityKing", typeof(decimal));
-            dt.Columns.Add("QtyQualityKing", typeof(int));
-
-            foreach (var r in rows)
-            {
-                var dr = dt.NewRow();
-                dr["Upc"] = r.Upc;
-                dr["PriceVictory"] = r.PriceVictory.HasValue ? r.PriceVictory.Value : DBNull.Value;
-                dr["QtyVictory"] = r.QtyVictory.HasValue ? r.QtyVictory.Value : DBNull.Value;
-                dr["PriceQualityKing"] = r.PriceQualityKing.HasValue ? r.PriceQualityKing.Value : DBNull.Value;
-                dr["QtyQualityKing"] = r.QtyQualityKing.HasValue ? r.QtyQualityKing.Value : DBNull.Value;
-                dt.Rows.Add(dr);
-            }
-
-            return dt;
-        }
+        private static DataTable BuildTvp(IEnumerable<UpcCompRow> rows) =>
+            UpcCompTvpBuilder.Build(rows);
     }
 }

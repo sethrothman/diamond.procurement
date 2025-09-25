@@ -6,6 +6,14 @@ namespace Diamond.Procurement.Data;
 
 public sealed class BuyerForecastRepository
 {
+    private static readonly DataTableBuilder<BuyerForecastRow> BuyerForecastTvpBuilder =
+        new DataTableBuilder<BuyerForecastRow>()
+            .AddColumn("Upc", r => r.Upc)
+            .AddColumn("Description", r => (r.Description ?? string.Empty).Trim())
+            .AddColumn("BuyerId", r => r.BuyerId)
+            .AddColumn("QtyInUnits", r => r.QtyInUnits)
+            .AddColumn("EffectiveDate", r => r.ForecastDate.ToDateTime(TimeOnly.MinValue));
+
     private readonly IDbFactory _dbf;
     public BuyerForecastRepository(IDbFactory dbf) => _dbf = dbf;
 
@@ -18,25 +26,6 @@ public sealed class BuyerForecastRepository
         await db.ExecuteAsync(new CommandDefinition("dbo.BuyerForecast_Load", p, commandType: CommandType.StoredProcedure, cancellationToken: ct));
     }
 
-    private static DataTable BuildTvp(IEnumerable<BuyerForecastRow> rows)
-    {
-        var dt = new DataTable();
-        dt.Columns.Add("Upc", typeof(string));
-        dt.Columns.Add("Description", typeof(string));          
-        dt.Columns.Add("BuyerId", typeof(int));
-        dt.Columns.Add("QtyInUnits", typeof(int));
-        dt.Columns.Add("EffectiveDate", typeof(DateTime));
-
-        foreach (var r in rows)
-        {
-            var dr = dt.NewRow();
-            dr["Upc"] = r.Upc;
-            dr["Description"] = (r.Description ?? string.Empty).Trim();  // NEW
-            dr["BuyerId"] = r.BuyerId;
-            dr["QtyInUnits"] = r.QtyInUnits;
-            dr["EffectiveDate"] = r.ForecastDate.ToDateTime(TimeOnly.MinValue);
-            dt.Rows.Add(dr);
-        }
-        return dt;
-    }
+    private static DataTable BuildTvp(IEnumerable<BuyerForecastRow> rows) =>
+        BuyerForecastTvpBuilder.Build(rows);
 }
