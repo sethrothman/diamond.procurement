@@ -38,31 +38,20 @@ public sealed class MainframeInventoryProcessor : IFileProcessor
         };
 
         using var csv = new CsvReader(sr, cfg);
+
         await csv.ReadAsync();
         csv.ReadHeader();
-        var headers = csv.HeaderRecord?.ToArray() ?? Array.Empty<string>();
+        var headers = CsvHeaderLookup.Normalize(csv.HeaderRecord);
 
-        string FindHeader(params string[] candidates)
-        {
-            foreach (var h in headers)
-            {
-                var hs = (h ?? string.Empty).Trim();
-                foreach (var c in candidates)
-                    if (hs.Contains(c, StringComparison.OrdinalIgnoreCase))
-                        return h;
-            }
-            throw new InvalidOperationException($"Could not find header: {string.Join(", ", candidates)}");
-        }
-
-        var hUpc = FindHeader("UPC");
-        var hCspk = FindHeader("CSPK");
-        var hQty = FindHeader("QTY~AVL");
-        var hOnPo = FindHeader("ON~PO");
-        var hOvstk = FindHeader("OVERSTOCK", "OVSTCK");
-        var hDesc = FindHeader("DESC");
-        var hList = FindHeader("LIST");
-        var hHi = FindHeader("HI");
-        var hTi = FindHeader("TI");
+        var hUpc = CsvHeaderLookup.FindContains(headers, "UPC");
+        var hCspk = CsvHeaderLookup.FindContains(headers, "CSPK");
+        var hQty = CsvHeaderLookup.FindContains(headers, "QTY~AVL");
+        var hOnPo = CsvHeaderLookup.FindContains(headers, "ON~PO");
+        var hOvstk = CsvHeaderLookup.FindContains(headers, "OVERSTOCK", "OVSTCK");
+        var hDesc = CsvHeaderLookup.FindContains(headers, "DESC");
+        var hList = CsvHeaderLookup.FindContains(headers, "LIST");
+        var hHi = CsvHeaderLookup.FindContains(headers, "HI");
+        var hTi = CsvHeaderLookup.FindContains(headers, "TI");
 
         while (await csv.ReadAsync())
         {

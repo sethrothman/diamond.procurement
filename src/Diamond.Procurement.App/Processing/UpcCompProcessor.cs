@@ -38,13 +38,13 @@ namespace Diamond.Procurement.App.Processing
             await csv.ReadAsync();
             csv.ReadHeader();
 
-            var headers = csv.HeaderRecord?.ToArray() ?? Array.Empty<string>();
+            var headers = CsvHeaderLookup.Normalize(csv.HeaderRecord);
 
             // Required columns (note: “ CMPT~VICAL” can have a leading space)
-            int idxUpc = IndexOfHeader(headers, "UPC");
-            int idxVical = IndexOfHeader(headers, "CMPT~Vic", allowLeadingSpace: true);
+            int idxUpc = CsvHeaderLookup.IndexOf(headers, "UPC");
+            int idxVical = CsvHeaderLookup.IndexOf(headers, "CMPT~Vic", allowLeadingSpace: true);
             int idxVicalQty = idxVical + 1; // “CMPT~QTY” immediately to the right
-            int idxQkall = IndexOfHeader(headers, "CMPT~Qk");
+            int idxQkall = CsvHeaderLookup.IndexOf(headers, "CMPT~Qk");
             int idxQkallQty = idxQkall + 1; // “CMPT~QTY” immediately to the right
 
             while (await csv.ReadAsync())
@@ -74,18 +74,5 @@ namespace Diamond.Procurement.App.Processing
 
             await _repo.LoadAsync(rows, ct);
         }
-
-        private static int IndexOfHeader(string[] headers, string target, bool allowLeadingSpace = false)
-        {
-            for (int i = 0; i < headers.Length; i++)
-            {
-                var h = headers[i] ?? string.Empty;
-                var hs = allowLeadingSpace ? h.TrimStart() : h.Trim();
-                if (hs.Equals(target, StringComparison.OrdinalIgnoreCase))
-                    return i;
-            }
-            throw new InvalidOperationException($"Could not find column header '{target}'.");
-        }
-
     }
 }
