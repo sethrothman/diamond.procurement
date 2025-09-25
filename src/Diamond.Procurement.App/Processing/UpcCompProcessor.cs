@@ -53,10 +53,10 @@ namespace Diamond.Procurement.App.Processing
                 if (!UpcNormalizer.TryNormalizeTo10(rawUpc, out var upc, out _))
                     continue;
 
-                decimal? priceVI = ParseMoney(csv.GetField(idxVical));
-                int? qtyVI = ParseInt(csv.GetField(idxVicalQty));
-                decimal? priceQK = ParseMoney(csv.GetField(idxQkall));
-                int? qtyQK = ParseInt(csv.GetField(idxQkallQty));
+                decimal? priceVI = NumericParsers.ParseMoney(csv.GetField(idxVical));
+                int? qtyVI = NumericParsers.ParseOptionalSignedInt(csv.GetField(idxVicalQty));
+                decimal? priceQK = NumericParsers.ParseMoney(csv.GetField(idxQkall));
+                int? qtyQK = NumericParsers.ParseOptionalSignedInt(csv.GetField(idxQkallQty));
 
                 // Skip rows that carry no useful signal
                 if (priceVI is null && qtyVI is null && priceQK is null && qtyQK is null)
@@ -87,35 +87,5 @@ namespace Diamond.Procurement.App.Processing
             throw new InvalidOperationException($"Could not find column header '{target}'.");
         }
 
-        private static int? ParseInt(string? raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-            var s = raw.Trim().Replace(",", "");
-            bool trailingMinus = s.EndsWith("-");
-            if (trailingMinus) s = s[..^1];
-            if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var val))
-                return trailingMinus ? -val : val;
-            return null;
-        }
-
-        private static decimal? ParseMoney(string? raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-            var s = raw.Trim();
-            bool trailingMinus = s.EndsWith("-");
-            if (trailingMinus) s = s[..^1];
-
-            if (s.StartsWith("(") && s.EndsWith(")"))
-            {
-                s = s[1..^1];
-                trailingMinus = true;
-            }
-            s = s.Replace("$", "").Replace(",", "");
-
-            if (decimal.TryParse(s, NumberStyles.Number | NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var d))
-                return trailingMinus ? -d : d;
-
-            return null;
-        }
     }
 }

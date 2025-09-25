@@ -65,12 +65,12 @@ public sealed class MeijerInventoryProcessor : BaseExcelProcessor, IFileProcesso
             var desc = map.Description > 0 ? (row.Cell(map.Description).GetString() ?? "").Trim() : "";
 
             // CasePack
-            var casePack = SafeToInt(row.Cell(map.CasePackQty));
+            var casePack = row.Cell(map.CasePackQty).GetIntOrDefault();
             if (casePack <= 0) casePack = 1;
 
             // Movement mapping:
             // Original 52-week annualized value → UnitsSoldLastYear; compute SalesYTD from it.
-            var annual = SafeToInt(row.Cell(map.Sales52Week)); // integer “annualized” count
+            var annual = row.Cell(map.Sales52Week).GetIntOrDefault(); // integer “annualized” count
             var weekly = annual / 52.0;
             var ytd = (int)Math.Round(weekly * weeksElapsed, MidpointRounding.AwayFromZero);
 
@@ -106,13 +106,4 @@ public sealed class MeijerInventoryProcessor : BaseExcelProcessor, IFileProcesso
         await _repo.LoadAsync(rows, ct);
     }
 
-    private static int SafeToInt(IXLCell cell)
-    {
-        if (cell.DataType == XLDataType.Number) return (int)Math.Round(cell.GetDouble());
-
-        var s = (cell.GetString() ?? string.Empty).Trim();
-        if (int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var n)) return n;
-        if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)) return (int)Math.Round(d);
-        return 0;
-    }
 }

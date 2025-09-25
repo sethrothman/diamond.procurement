@@ -98,13 +98,13 @@ public sealed class CnsInventoryProcessor : BaseExcelProcessor, IFileProcessor, 
             var pack = 1;
             if (map.Pack > 0)
             {
-                pack = SafeToInt(row.Cell(map.Pack));
+                pack = row.Cell(map.Pack).GetIntOrDefault();
                 if (pack <= 0) pack = 1;
             }
 
             // Raw values
-            var onHand = SafeToInt(row.Cell(map.Boh));
-            var onPo = SafeToInt(row.Cell(map.OnOrder));
+            var onHand = row.Cell(map.Boh).GetIntOrDefault();
+            var onPo = row.Cell(map.OnOrder).GetIntOrDefault();
             var avg13 = row.Cell(map.Avg13).GetDouble();
             if (avg13 < 0) avg13 = 0;
 
@@ -151,20 +151,5 @@ public sealed class CnsInventoryProcessor : BaseExcelProcessor, IFileProcessor, 
         }
 
         await _repo.LoadAsync(rows, ct);
-    }
-
-    private static int SafeToInt(IXLCell cell)
-    {
-        if (cell.DataType == XLDataType.Number)
-            return (int)Math.Round(cell.GetDouble());
-
-        var s = (cell.GetString() ?? string.Empty).Trim();
-        if (int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var n))
-            return n;
-
-        if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
-            return (int)Math.Round(d);
-
-        return 0;
     }
 }
