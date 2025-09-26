@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Linq;
+using System.Runtime.CompilerServices;
 using DevExpress.XtraGrid.Columns;                     // FixedStyle
 using DevExpress.XtraGrid.Views.BandedGrid;           // AdvBandedGridView, GridBand, BandedGridColumn
 using DevExpress.XtraGrid.Views.BandedGrid.ViewInfo;  // BandedGridViewInfo
@@ -116,6 +117,16 @@ public static class BandDividerHelper
         }
         if (eligible.Count == 0) return;
 
+        // If the grid exposes a right-fixed pane, DevExpress already paints a separator between
+        // the scrollable pane and the fixed pane. Skip the rightmost seam so we don't double it.
+        bool hasRightFixed = HasRightFixedPane(view, info);
+        if (hasRightFixed)
+        {
+            int maxEdge = eligible.Max(ed => ed.X);
+            eligible.RemoveAll(ed => ed.X >= maxEdge);
+            if (eligible.Count == 0) return;
+        }
+
         // Sort by X (viewport order)
         eligible.Sort((a, b) => a.X.CompareTo(b.X));
 
@@ -177,10 +188,6 @@ public static class BandDividerHelper
         // Use the per-frame edge captured from column headers
         if (!state.BandEdgeX.TryGetValue(band, out int x0)) { e.Handled = true; return; }
 
-        // If there is a Right-fixed pane and this is the last non-fixed seam, skip it
-        if (IsRightmostNonFixedEdge(view, state, band, x0)) { e.Handled = true; return; }
-
-        // Additional check: ensure the line position is within the scrollable area
         if (view.GetViewInfo() is BandedGridViewInfo info)
         {
             var scrollableArea = GetScrollableAreaBounds(view, info);
@@ -189,7 +196,10 @@ public static class BandDividerHelper
                 e.Handled = true;
                 return;
             }
+
+            if (IsRightmostNonFixedEdge(view, state, band, x0, info)) { e.Handled = true; return; }
         }
+        else if (IsRightmostNonFixedEdge(view, state, band, x0, null)) { e.Handled = true; return; }
 
         using var pen = new Pen(state.LineColor ?? view.Appearance.VertLine.ForeColor, 1f);
         for (int i = 0; i < state.Thickness; i++)
@@ -198,17 +208,22 @@ public static class BandDividerHelper
         e.Handled = true;
     }
 
-    private static bool IsRightmostNonFixedEdge(AdvBandedGridView view, State state, GridBand candidateBand, int candidateX)
+    private static bool IsRightmostNonFixedEdge(AdvBandedGridView view, State state, GridBand candidateBand, int candidateX, BandedGridViewInfo? info)
     {
-        bool hasRightFixed = view.Columns.OfType<BandedGridColumn>()
-            .Any(c => c.Visible && c.Fixed == FixedStyle.Right);
-        if (!hasRightFixed) return false;
-
-        // Get scrollable area to ensure we're only considering edges within the scrollable viewport
+        bool hasRightFixed = false;
         Rectangle scrollableArea = Rectangle.Empty;
-        if (view.GetViewInfo() is BandedGridViewInfo info)
+
+        if (info != null)
         {
+            hasRightFixed = HasRightFixedPane(view, info);
             scrollableArea = GetScrollableAreaBounds(view, info);
+        }
+
+        if (!hasRightFixed)
+        {
+            hasRightFixed = view.Columns.OfType<BandedGridColumn>()
+                .Any(c => c.Visible && c.Fixed == FixedStyle.Right);
+            if (!hasRightFixed) return false;
         }
 
         // Compute the max X among visible, leaf, non-fixed bands that have edges this frame
@@ -260,9 +275,6 @@ public static class BandDividerHelper
         // and skip it if this seam is the rightmost non-fixed seam when a Right-fixed pane exists.
         if (!state.BandEdgeX.TryGetValue(band, out int x0)) { e.Handled = true; return; }
         if (cx != x0) { e.Handled = true; return; }
-        if (IsRightmostNonFixedEdge(view, state, band, x0)) { e.Handled = true; return; }
-
-        // Additional check: ensure the line position is within the scrollable area
         if (view.GetViewInfo() is BandedGridViewInfo info)
         {
             var scrollableArea = GetScrollableAreaBounds(view, info);
@@ -271,13 +283,25 @@ public static class BandDividerHelper
                 e.Handled = true;
                 return;
             }
+
+            if (IsRightmostNonFixedEdge(view, state, band, x0, info)) { e.Handled = true; return; }
         }
+        else if (IsRightmostNonFixedEdge(view, state, band, x0, null)) { e.Handled = true; return; }
 
         using var pen = new Pen(state.LineColor ?? view.Appearance.VertLine.ForeColor, 1f);
         for (int i = 0; i < state.Thickness; i++)
             e.Graphics.DrawLine(pen, x0 - i, e.Bounds.Top, x0 - i, e.Bounds.Bottom);
 
         e.Handled = true;
+    }
+
+    private static bool HasRightFixedPane(AdvBandedGridView view, BandedGridViewInfo info)
+    {
+        if (!info.ViewRects.FixedRight.IsEmpty)
+            return true;
+
+        return view.Columns.OfType<BandedGridColumn>()
+            .Any(c => c.Visible && c.Fixed == FixedStyle.Right);
     }
 
 }

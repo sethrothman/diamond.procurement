@@ -40,68 +40,17 @@ public sealed class MainframeInventoryProcessor : IFileProcessor
         using var csv = new CsvReader(sr, cfg);
         await csv.ReadAsync();
         csv.ReadHeader();
-        var headers = csv.HeaderRecord?.ToArray() ?? Array.Empty<string>();
+        var headers = CsvHeaderLookup.Normalize(csv.HeaderRecord);
 
-        string FindHeader(params string[] candidates)
-        {
-            foreach (var h in headers)
-            {
-                var hs = (h ?? string.Empty).Trim();
-                foreach (var c in candidates)
-                    if (hs.Contains(c, StringComparison.OrdinalIgnoreCase))
-                        return h;
-            }
-            throw new InvalidOperationException($"Could not find header: {string.Join(", ", candidates)}");
-        }
-
-        static int ParseMainframeInt(string? raw)
-        {
-            // Handles: "123", "-123", "123-", "1,234", "1,234-"
-            var s = (raw ?? string.Empty).Trim();
-            if (string.IsNullOrEmpty(s)) return 0;
-
-            s = s.Replace(",", "");
-            bool trailingMinus = s.EndsWith('-');
-            if (trailingMinus) s = s[..^1];
-
-            if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var val))
-                return trailingMinus ? -val : val;
-
-            return int.TryParse((raw ?? "").Trim(), out var v) ? v : 0;
-        }
-
-        static decimal? ParseMoney(string? raw)
-        {
-            // Accept: "$1,234.56", "1,234.56", "(1,234.56)", "1234", "1234-"
-            var s = (raw ?? string.Empty).Trim();
-            if (string.IsNullOrEmpty(s)) return null;
-
-            var neg = false;
-            if (s.EndsWith("-", StringComparison.Ordinal))
-            {
-                neg = true; s = s[..^1];
-            }
-            if (s.StartsWith("(") && s.EndsWith(")"))
-            {
-                neg = true; s = s.Trim('(', ')');
-            }
-
-            s = s.Replace("$", "").Replace(",", "");
-            if (decimal.TryParse(s, NumberStyles.Number | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var val))
-                return neg ? -val : val;
-
-            return null;
-        }
-
-        var hUpc = FindHeader("UPC");
-        var hCspk = FindHeader("CSPK");
-        var hQty = FindHeader("QTY~AVL");
-        var hOnPo = FindHeader("ON~PO");
-        var hOvstk = FindHeader("OVERSTOCK", "OVSTCK");
-        var hDesc = FindHeader("DESC");
-        var hList = FindHeader("LIST");
-        var hHi = FindHeader("HI");
-        var hTi = FindHeader("TI");
+        var hUpc = CsvHeaderLookup.FindContains(headers, "UPC");
+        var hCspk = CsvHeaderLookup.FindContains(headers, "CSPK");
+        var hQty = CsvHeaderLookup.FindContains(headers, "QTY~AVL");
+        var hOnPo = CsvHeaderLookup.FindContains(headers, "ON~PO");
+        var hOvstk = CsvHeaderLookup.FindContains(headers, "OVERSTOCK", "OVSTCK");
+        var hDesc = CsvHeaderLookup.FindContains(headers, "DESC");
+        var hList = CsvHeaderLookup.FindContains(headers, "LIST");
+        var hHi = CsvHeaderLookup.FindContains(headers, "HI");
+        var hTi = CsvHeaderLookup.FindContains(headers, "TI");
 
         while (await csv.ReadAsync())
         {
@@ -115,12 +64,12 @@ public sealed class MainframeInventoryProcessor : IFileProcessor
             if (int.TryParse((cspkStr ?? string.Empty).Trim(), out var cp) && cp > 0)
                 casePack = cp;
 
-            var qty = ParseMainframeInt(csv.GetField(hQty));
-            var onpo = ParseMainframeInt(csv.GetField(hOnPo));
-            var ovstk = ParseMainframeInt(csv.GetField(hOvstk));
-            var list = ParseMoney(csv.GetField(hList)); // NEW
-            var hi = ParseMainframeInt(csv.GetField(hHi));
-            var ti = ParseMainframeInt(csv.GetField(hTi));
+            var qty = NumericParsers.ParseSignedIntOrDefault(csv.GetField(hQty));
+            var onpo = NumericParsers.ParseSignedIntOrDefault(csv.GetField(hOnPo));
+            var ovstk = NumericParsers.ParseSignedIntOrDefault(csv.GetField(hOvstk));
+            var list = NumericParsers.ParseMoney(csv.GetField(hList));
+            var hi = NumericParsers.ParseSignedIntOrDefault(csv.GetField(hHi));
+            var ti = NumericParsers.ParseSignedIntOrDefault(csv.GetField(hTi));
 
             rows.Add(new MainframeInventoryRow
             {

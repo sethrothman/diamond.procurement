@@ -59,7 +59,7 @@ public sealed class DgInventoryProcessor
             var desc = (row.Cell(map.Description).GetString() ?? string.Empty).Trim();
 
             // CasePack still mapped, but not used for weekly eaches calc.
-            var casePack = SafeToInt(row.Cell(map.CasePack));
+            var casePack = row.Cell(map.CasePack).GetIntOrDefault();
             if (casePack <= 0) casePack = 1;
 
             // Avg Wkly Mvmnt is already IN EACHES
@@ -97,11 +97,6 @@ public sealed class DgInventoryProcessor
 
         await _repo.LoadAsync(outRows, ct);
     }
-
-    private static int SafeToInt(IXLCell cell)
-        => cell.DataType == XLDataType.Number ? (int)Math.Round(cell.GetDouble())
-           : int.TryParse((cell.GetString() ?? "").Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n
-           : (double.TryParse((cell.GetString() ?? "").Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? (int)Math.Round(d) : 0);
 
     private static decimal SafeToDecimal(IXLCell cell)
         => cell.DataType == XLDataType.Number ? (decimal)cell.GetDouble()
