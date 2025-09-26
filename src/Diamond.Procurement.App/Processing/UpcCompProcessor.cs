@@ -35,6 +35,7 @@ namespace Diamond.Procurement.App.Processing
 
             using var reader = new StreamReader(path);
             using var csv = new CsvReader(reader, cfg);
+
             await csv.ReadAsync();
             csv.ReadHeader();
 
