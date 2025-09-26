@@ -17,6 +17,10 @@
             {
                 components.Dispose();
             }
+            if (disposing)
+            {
+                _updateCheckTimer?.Dispose();
+            }
             base.Dispose(disposing);
         }
 
@@ -34,6 +38,7 @@
             navigationFrame1 = new DevExpress.XtraBars.Navigation.NavigationFrame();
             navigationPage1 = new DevExpress.XtraBars.Navigation.NavigationPage();
             accordionControl1 = new DevExpress.XtraBars.Navigation.AccordionControl();
+            accordionControlElementUpdateAvailable = new DevExpress.XtraBars.Navigation.AccordionControlElement();
             accordionControlElement1 = new DevExpress.XtraBars.Navigation.AccordionControlElement();
             accordionControlElement2 = new DevExpress.XtraBars.Navigation.AccordionControlElement();
             accordionControlElement3 = new DevExpress.XtraBars.Navigation.AccordionControlElement();
@@ -87,7 +92,7 @@
             accordionControl1.Appearance.Item.Default.Font = new Font("Tahoma", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
             accordionControl1.Appearance.Item.Default.Options.UseFont = true;
             accordionControl1.Dock = DockStyle.Left;
-            accordionControl1.Elements.AddRange(new DevExpress.XtraBars.Navigation.AccordionControlElement[] { accordionControlElement1, accordionControlElement4, accordionControlElement8 });
+            accordionControl1.Elements.AddRange(new DevExpress.XtraBars.Navigation.AccordionControlElement[] { accordionControlElementUpdateAvailable, accordionControlElement1, accordionControlElement4, accordionControlElement8 });
             accordionControl1.Location = new Point(0, 31);
             accordionControl1.Name = "accordionControl1";
             accordionControl1.OptionsMinimizing.AllowMinimizeMode = DevExpress.Utils.DefaultBoolean.True;
@@ -95,9 +100,19 @@
             accordionControl1.Size = new Size(208, 728);
             accordionControl1.TabIndex = 1;
             accordionControl1.ViewType = DevExpress.XtraBars.Navigation.AccordionControlViewType.HamburgerMenu;
-            // 
+            // accordionControlElementUpdateAvailable
+            //
+            accordionControlElementUpdateAvailable.Appearance.Normal.ForeColor = Color.FromArgb(230, 126, 34);
+            accordionControlElementUpdateAvailable.Appearance.Normal.Options.UseForeColor = true;
+            accordionControlElementUpdateAvailable.ImageOptions.SvgImageSize = new Size(16, 16);
+            accordionControlElementUpdateAvailable.Name = "accordionControlElementUpdateAvailable";
+            accordionControlElementUpdateAvailable.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
+            accordionControlElementUpdateAvailable.Tag = "update";
+            accordionControlElementUpdateAvailable.Text = "Update available - click to restart";
+            accordionControlElementUpdateAvailable.Visible = false;
+            //
             // accordionControlElement1
-            // 
+            //
             accordionControlElement1.Elements.AddRange(new DevExpress.XtraBars.Navigation.AccordionControlElement[] { accordionControlElement2, accordionControlElement3, accordionControlElement9 });
             accordionControlElement1.Expanded = true;
             accordionControlElement1.Name = "accordionControlElement1";
@@ -220,6 +235,7 @@
         private DevExpress.XtraBars.Navigation.AccordionControlElement accordionControlElement5;
         private DevExpress.XtraBars.Navigation.AccordionControlElement accordionControlElement6;
         private DevExpress.XtraBars.Navigation.AccordionControlElement accordionControlElement7;
+        private DevExpress.XtraBars.Navigation.AccordionControlElement accordionControlElementUpdateAvailable;
         private DevExpress.XtraBars.Navigation.AccordionControlElement accordionControlElement8;
         private DevExpress.XtraBars.Navigation.AccordionControlElement accordionControlElement9;
     }

@@ -3,33 +3,65 @@ using Diamond.Procurement.Data;
 using Diamond.Procurement.Data.Repositories;
 using Diamond.Procurement.Win.Helpers;
 using Diamond.Procurement.Win.UserControls;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
+
+using Timer = System.Windows.Forms.Timer;
 
 namespace Diamond.Procurement.Win.Forms
 {
     public partial class frmLandingPage : DevExpress.XtraBars.FluentDesignSystem.FluentDesignForm
     {
         private readonly Dictionary<string, UserControl> _pageCache = new();
+        private const string UpdateElementTag = "update";
         private readonly IServiceProvider _sp;
+        private readonly IConfiguration _configuration;
+        private readonly Timer _updateCheckTimer;
+        private readonly TimeSpan _updateCheckInterval;
+        private readonly string? _manifestUrl;
+        private bool _updateCheckInProgress;
+        private bool _updateAvailable;
 
-        public frmLandingPage(IServiceProvider sp)
+        public frmLandingPage(IServiceProvider sp, IConfiguration configuration)
         {
             InitializeComponent();
 
             FormBoundsPersistence.Attach(this, "frmLandingPage");
 
             _sp = sp;
+            _configuration = configuration;
+
+            _manifestUrl = _configuration["Deployment:ManifestUrl"];
+            var intervalMinutes = Math.Max(1, _configuration.GetValue<int>("Deployment:UpdateCheckMinutes", 60));
+            _updateCheckInterval = TimeSpan.FromMinutes(intervalMinutes);
+            _updateCheckTimer = new Timer { Interval = (int)_updateCheckInterval.TotalMilliseconds, Enabled = false };
+            _updateCheckTimer.Tick += UpdateCheckTimer_Tick;
+            accordionControlElementUpdateAvailable.Tag = UpdateElementTag;
 
             // 2) Handle nav clicks
             accordionControl1.ElementClick += OnNavClick;
-            accordionControl1.ExpandStateChanging += (s, e) => 
+            accordionControl1.ExpandStateChanging += (s, e) =>
             {
                 if (e.Element.Style == ElementStyle.Group && e.NewState == AccordionElementState.Collapsed)
                     e.ElementsToExpandCollapse.Clear();
             };
 
-            // 3) Optional: set a default page at startup
-            Shown += (_, __) => Navigate("imports"); // or "imports" if first run
+            // 3) Optional: set a default page at startup & perform update check
+            Shown += async (_, __) =>
+            {
+                Navigate("imports");
+
+                if (!string.IsNullOrWhiteSpace(_manifestUrl))
+                {
+                    var updateFound = await CheckForUpdatesAsync();
+                    if (!updateFound)
+                    {
+                        _updateCheckTimer.Interval = (int)_updateCheckInterval.TotalMilliseconds;
+                        _updateCheckTimer.Start();
+                    }
+                }
+            };
         }
 
         private void OnNavClick(object sender, ElementClickEventArgs e)
@@ -39,12 +71,21 @@ namespace Diamond.Procurement.Win.Forms
                 Application.UseWaitCursor = true;
                 Cursor.Current = Cursors.WaitCursor;
 
+                if (ReferenceEquals(e.Element, accordionControlElementUpdateAvailable))
+                {
+                    RestartForUpdate();
+                    return;
+                }
+
                 if (e.Element.Style != ElementStyle.Item) return;
 
                 var route = (string?)e.Element.Tag ?? e.Element.Text?.Trim().ToLowerInvariant();
                 if (!string.IsNullOrEmpty(route))
                 {
-                    Navigate(route);
+                    if (!string.Equals(route, UpdateElementTag, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Navigate(route);
+                    }
                 }
             }
             finally
@@ -99,6 +140,84 @@ namespace Diamond.Procurement.Win.Forms
             {
                 accordionControl1.EndUpdate();
             }
+        }
+
+        private async void UpdateCheckTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_updateAvailable)
+            {
+                _updateCheckTimer.Stop();
+                return;
+            }
+
+            _updateCheckTimer.Stop();
+            try
+            {
+                await CheckForUpdatesAsync();
+            }
+            finally
+            {
+                if (!_updateAvailable)
+                {
+                    _updateCheckTimer.Interval = (int)_updateCheckInterval.TotalMilliseconds;
+                    _updateCheckTimer.Start();
+                }
+            }
+        }
+
+        private async Task<bool> CheckForUpdatesAsync()
+        {
+            if (_updateCheckInProgress || string.IsNullOrWhiteSpace(_manifestUrl))
+            {
+                return false;
+            }
+
+            _updateCheckInProgress = true;
+            try
+            {
+                var remoteVersion = await ClickOnceUpdateChecker.GetDeploymentVersionAsync(_manifestUrl);
+                if (remoteVersion == null)
+                {
+                    return false;
+                }
+
+                var currentVersion = ClickOnceUpdateChecker.GetCurrentVersion();
+                if (remoteVersion > currentVersion)
+                {
+                    _updateAvailable = true;
+                    ShowUpdateAvailable(remoteVersion);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Update check failed: {ex}");
+            }
+            finally
+            {
+                _updateCheckInProgress = false;
+            }
+
+            return false;
+        }
+
+        private void ShowUpdateAvailable(Version remoteVersion)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action<Version>(ShowUpdateAvailable), remoteVersion);
+                return;
+            }
+
+            accordionControlElementUpdateAvailable.Visible = true;
+            accordionControlElementUpdateAvailable.Text = $"Update available ({remoteVersion}) - click to restart";
+        }
+
+        private void RestartForUpdate()
+        {
+            _updateCheckTimer.Stop();
+            accordionControlElementUpdateAvailable.Enabled = false;
+            Application.Restart();
         }
 
         private AccordionControlElement? FindByRoute(AccordionControlElementCollection nodes, string route)
